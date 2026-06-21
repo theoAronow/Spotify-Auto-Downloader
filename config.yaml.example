@@ -1,0 +1,16 @@
+download_dir: ~/Music/spotify-auto-dl
+
+artists:
+  - name: Taylor Swift
+    url: https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02
+  - name: Kendrick Lamar
+    url: https://open.spotify.com/artist/2YZyLoL8N0Wb9xBt1NhZWg
+
+schedule:
+  interval_hours: 24
+  run_on_start: true
+
+output:
+  format: "{artist}/{album}/{title}.{output-ext}"
+  audio_format: mp3
+  bitrate: 320k
