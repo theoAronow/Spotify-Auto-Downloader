@@ -87,3 +87,31 @@ def add_artist(url: str, config_path: Path) -> None:
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
     click.echo(f"Added {name} to {config_path}.")
+
+
+@cli.command("set-destination")
+@click.argument("path")
+@click.option(
+    "--config",
+    "config_path",
+    default="config.yaml",
+    type=click.Path(path_type=Path),
+    help="Path to your config.yaml file.",
+)
+def set_destination(path: str, config_path: Path) -> None:
+    """Set the download directory in your config."""
+    destination = Path(path).expanduser().resolve()
+
+    if not destination.exists():
+        click.confirm(f"{destination} does not exist. Create it?", abort=True)
+        destination.mkdir(parents=True)
+
+    with open(config_path) as f:
+        config = yaml.safe_load(f)
+
+    config["download_dir"] = str(destination)
+
+    with open(config_path, "w") as f:
+        yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
+
+    click.echo(f"Download directory set to {destination}.")

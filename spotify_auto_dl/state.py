@@ -17,8 +17,13 @@ class State:
         with open(self._path) as f:
             return json.load(f)
 
-    def is_downloaded(self, track_id: str) -> bool:
-        return track_id in self._data
+    def is_downloaded(self, track_id: str, title: str | None = None) -> bool:
+        if track_id in self._data:
+            return True
+        if title is not None:
+            normalized = title.lower().strip()
+            return any(v["title"].lower().strip() == normalized for v in self._data.values())
+        return False
 
     def mark_downloaded(self, track_id: str, title: str, artist: str, album: str) -> None:
         self._data[track_id] = {

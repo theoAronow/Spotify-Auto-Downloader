@@ -1,11 +1,14 @@
 import os
+import logging
 from urllib.parse import urlparse
+
+for _logger in ("spotdl", "yt_dlp", "ytmusicapi", "urllib3", "asyncio"):
+    logging.getLogger(_logger).setLevel(logging.CRITICAL)
 
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from spotdl import Spotdl
 from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn, TimeElapsedColumn
 
 from .config import Config
 from .state import State
@@ -78,7 +81,7 @@ def sync(config: Config, state: State) -> None:
 
         new_tracks = []
         for track in all_tracks:
-            already = state.is_downloaded(track["id"])
+            already = state.is_downloaded(track["id"], title=track["name"])
             status = "[dim]already downloaded[/dim]" if already else "[green]new[/green]"
             console.print(f"    {track['name']} — [dim]{track['album']}[/dim] [{status}]")
             if not already:
@@ -88,36 +91,27 @@ def sync(config: Config, state: State) -> None:
             console.print("\n  [green]Already up to date.[/]")
             continue
 
-        console.print(f"\n  [bold]{len(new_tracks)} new track(s) to download.[/]")
+        console.print(f"\n  [bold]{len(new_tracks)} new track(s) to download.[/]\n")
 
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeElapsedColumn(),
-            console=console,
-        ) as progress:
-            task = progress.add_task("Downloading...", total=len(new_tracks))
-
-            for track in new_tracks:
-                progress.update(task, description=f"[cyan]{track['name']}[/]")
-                track_url = f"https://open.spotify.com/track/{track['id']}"
-                songs = spotdl_client.search([track_url])
-                if songs:
-                    _, path = spotdl_client.download(songs[0])
-                    if path:
-                        state.mark_downloaded(
-                            track_id=track["id"],
-                            title=track["name"],
-                            artist=artist.name,
-                            album=track["album"],
-                        )
-                    else:
-                        console.print(f"  [red]Failed:[/] {track['name']}")
+        total = len(new_tracks)
+        for i, track in enumerate(new_tracks, 1):
+            console.print(f"  [{i}/{total}] Downloading: [cyan]{track['name']}[/]")
+            track_url = f"https://open.spotify.com/track/{track['id']}"
+            songs = spotdl_client.search([track_url])
+            if songs:
+                _, path = spotdl_client.download(songs[0])
+                if path:
+                    state.mark_downloaded(
+                        track_id=track["id"],
+                        title=track["name"],
+                        artist=artist.name,
+                        album=track["album"],
+                    )
+                    console.print(f"  [{i}/{total}] [green]Done:[/] {track['name']}")
                 else:
-                    console.print(f"  [red]Not found on YouTube:[/] {track['name']}")
-                progress.advance(task)
+                    console.print(f"  [{i}/{total}] [red]Failed:[/] {track['name']}")
+            else:
+                console.print(f"  [{i}/{total}] [red]Not found on YouTube:[/] {track['name']}")
 
     state.save()
     console.print("\n[bold green]Sync complete.[/]")
