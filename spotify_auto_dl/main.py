@@ -53,6 +53,43 @@ def sync(config_path: Path, daemon: bool) -> None:
         run_sync(config, state)
 
 
+@cli.command("init")
+@click.option(
+    "--config",
+    "config_path",
+    default="config.yaml",
+    type=click.Path(path_type=Path),
+    help="Where to create the config file.",
+)
+def init(config_path: Path) -> None:
+    """Create a starter config.yaml in the current directory."""
+    if config_path.exists():
+        click.confirm(f"{config_path} already exists. Overwrite?", abort=True)
+
+    default_config = {
+        "download_dir": str(Path("~/Music/spotify-auto-dl").expanduser()),
+        "artists": [],
+        "schedule": {
+            "interval_hours": 24,
+            "run_on_start": True,
+        },
+        "output": {
+            "format": "{artist}/{album}/{title}.{output-ext}",
+            "audio_format": "mp3",
+            "bitrate": "320k",
+        },
+    }
+
+    with open(config_path, "w") as f:
+        yaml.dump(default_config, f, default_flow_style=False, allow_unicode=True)
+
+    click.echo(f"Created {config_path}.")
+    click.echo("Next steps:")
+    click.echo("  1. Set your download directory:  spotify-auto-dl set-destination /path/to/music")
+    click.echo("  2. Add an artist:                spotify-auto-dl add-artist \"<spotify artist url>\"")
+    click.echo("  3. Run a sync:                   spotify-auto-dl sync")
+
+
 @cli.command("add-artist")
 @click.argument("url")
 @click.option(

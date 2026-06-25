@@ -27,21 +27,37 @@ brew install ffmpeg
 
 ## Installation
 
-**1. Clone the repo**
+**1. Install the package**
+
 ```bash
-git clone https://github.com/your-username/spotify-auto-downloader.git
-cd spotify-auto-downloader
+pip install spotify-auto-dl
 ```
 
-**2. Create and activate a virtual environment**
+**2. Generate a starter config**
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
+spotify-auto-dl init
+```
+Creates a `config.yaml` in your current directory with sensible defaults. Run this once after installing.
+
+**3. Set your credentials**
+
+Create a `.env` file in the same directory as your `config.yaml`:
+```
+SPOTIFY_CLIENT_ID=your_client_id_here
+SPOTIFY_CLIENT_SECRET=your_client_secret_here
 ```
 
-**3. Install the package**
+See [Spotify API Credentials](#spotify-api-credentials) below for how to get these.
+
+**4. Set your download folder**
 ```bash
-pip install .
+spotify-auto-dl set-destination ~/Music
+```
+
+**5. Add artists and sync**
+```bash
+spotify-auto-dl add-artist "https://open.spotify.com/artist/ARTIST_ID"
+spotify-auto-dl sync
 ```
 
 ---
@@ -54,28 +70,14 @@ This tool uses the Spotify API to look up artist discographies. You need a free 
 2. Click **Create App**
 3. Fill in any name and description, set the redirect URI to `http://localhost`
 4. Open the app and copy the **Client ID** and **Client Secret**
-
-**4. Set up your credentials**
-```bash
-cp .env.example .env
-```
-
-Open `.env` and fill in your credentials:
-```
-SPOTIFY_CLIENT_ID=your_client_id_here
-SPOTIFY_CLIENT_SECRET=your_client_secret_here
-```
+5. Paste them into your `.env` file
 
 ---
 
 ## Configuration
 
-**5. Create your config file**
-```bash
-cp config.yaml.example config.yaml
-```
+Your `config.yaml` controls where files are saved, which artists to track, and how downloads are formatted:
 
-Open `config.yaml` and edit it:
 ```yaml
 download_dir: ~/Music/spotify-auto-dl
 
@@ -95,9 +97,17 @@ output:
 
 To get an artist URL: open Spotify → artist page → three dots → **Share** → **Copy Artist Link**.
 
+Rather than editing `config.yaml` by hand, you can use the CLI commands below.
+
 ---
 
 ## Usage
+
+### Initialize config
+```bash
+spotify-auto-dl init
+```
+Creates a `config.yaml` in the current directory. Run once after installing.
 
 ### Run a one-time sync
 ```bash
@@ -114,7 +124,7 @@ Syncs immediately on start (if `run_on_start: true`), then again every `interval
 ```bash
 spotify-auto-dl add-artist "https://open.spotify.com/artist/ARTIST_ID"
 ```
-Looks up the artist name from Spotify automatically and adds them to `config.yaml`.
+Looks up the artist name from Spotify automatically and appends them to `config.yaml`.
 
 ### Change the download directory
 ```bash
@@ -153,7 +163,7 @@ For example:
 
 ## State File
 
-Downloaded tracks are recorded in `~/.spotify-auto-dl/state.json`. This file is how the tool knows what you already have — it prevents re-downloading songs across runs. Do not delete it unless you want to re-download everything.
+Downloaded tracks are recorded in `~/.spotify-auto-dl/state.json`. This is how the tool knows what you already have — it prevents re-downloading songs across runs. Do not delete it unless you want to re-download everything.
 
 ---
 
@@ -165,7 +175,7 @@ There are two ways to run this tool automatically: **daemon mode** and **cron**.
 
 | | Daemon (`--daemon`) | Cron |
 |---|---|---|
-| How it works | Python process that sleeps and loops forever | OS wakes the command at a set time, it runs once and exits |
+| How it works | Python process that sleeps and loops forever | OS wakes the command at a set time, runs once and exits |
 | Requires terminal open | Yes | No |
 | Survives reboot | No | Yes |
 | Easy to stop | `Ctrl+C` | `crontab -e` to remove |
@@ -185,10 +195,15 @@ This opens a text editor. If it opens vim, press `i` to start typing.
 
 **Step 2 — add this line** (runs every day at 6am)
 ```
-0 6 * * * cd /Users/theoaronow/Documents/Spotify-Auto-Downloader && SPOTIFY_CLIENT_ID=your_id SPOTIFY_CLIENT_SECRET=your_secret /Users/theoaronow/Documents/Spotify-Auto-Downloader/.venv/bin/spotify-auto-dl sync --config /Users/theoaronow/Documents/Spotify-Auto-Downloader/config.yaml >> /Users/theoaronow/.spotify-auto-dl/cron.log 2>&1
+0 6 * * * cd /path/to/your/config/folder && SPOTIFY_CLIENT_ID=your_id SPOTIFY_CLIENT_SECRET=your_secret /path/to/.venv/bin/spotify-auto-dl sync --config /path/to/config.yaml >> ~/.spotify-auto-dl/cron.log 2>&1
 ```
 
-Replace `your_id` and `your_secret` with the values from your `.env` file. The credentials must be inline because cron does not load `.env` files automatically.
+Replace the paths with your actual values. To find the path to the executable:
+```bash
+which spotify-auto-dl
+```
+
+The credentials must be inline because cron does not load `.env` files automatically.
 
 **Step 3 — save and exit**
 
@@ -216,16 +231,16 @@ cat ~/.spotify-auto-dl/cron.log
 ## Troubleshooting
 
 **`KeyError: SPOTIFY_CLIENT_ID`**
-Your `.env` file is missing or the variable names are misspelled. Make sure `.env` exists in the directory where you run the command.
+Your `.env` file is missing or the variable names are misspelled. Make sure `.env` exists in the same directory where you run the command.
 
 **`FileNotFoundError: config.yaml`**
-Run the command from the project directory, or use `--config /full/path/to/config.yaml`.
+Run `spotify-auto-dl init` first, or use `--config /full/path/to/config.yaml` if your config is elsewhere.
 
 **A track shows as new every run**
 The same song can have different Spotify IDs across album versions, deluxe editions, and singles. The tool checks by both ID and title to handle this, but edge cases may occur.
 
 **Downloads are slow**
-Normal — each track requires finding a matching audio source on YouTube. The first run is the slowest since it downloads everything. Future runs only download new releases.
+Normal — each track requires finding a matching audio source on YouTube. The first run is the slowest since it downloads everything. Future runs only fetch new releases.
 
 ---
 
