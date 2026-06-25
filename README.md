@@ -104,11 +104,11 @@ To get an artist URL: open Spotify → artist page → three dots → **Share** 
 spotify-auto-dl sync
 ```
 
-### Run continuously on a schedule
+### Run continuously on a schedule (daemon mode)
 ```bash
 spotify-auto-dl sync --daemon
 ```
-Syncs immediately on start (if `run_on_start: true`), then again every `interval_hours` hours.
+Syncs immediately on start (if `run_on_start: true`), then again every `interval_hours` hours. See [Scheduling](#scheduling) for when to use this vs cron.
 
 ### Add an artist
 ```bash
@@ -157,22 +157,58 @@ Downloaded tracks are recorded in `~/.spotify-auto-dl/state.json`. This file is 
 
 ---
 
-## Running on a Schedule (without --daemon)
+## Scheduling
 
-If you'd rather use your system's scheduler instead of the built-in daemon:
+There are two ways to run this tool automatically: **daemon mode** and **cron**. They accomplish the same goal differently.
 
-**Mac/Linux (cron)**
+### Daemon vs Cron
+
+| | Daemon (`--daemon`) | Cron |
+|---|---|---|
+| How it works | Python process that sleeps and loops forever | OS wakes the command at a set time, it runs once and exits |
+| Requires terminal open | Yes | No |
+| Survives reboot | No | Yes |
+| Easy to stop | `Ctrl+C` | `crontab -e` to remove |
+| Best for | Servers, Docker containers | Personal computers |
+
+**For a personal Mac, cron is recommended.** The daemon requires a terminal window to stay open and won't restart if you reboot. Cron is managed by the OS and runs reliably in the background.
+
+---
+
+### Setting Up Cron (Recommended for Mac)
+
+**Step 1 — open your crontab**
 ```bash
 crontab -e
 ```
-Add a line to run every day at 6am:
+This opens a text editor. If it opens vim, press `i` to start typing.
+
+**Step 2 — add this line** (runs every day at 6am)
 ```
-0 6 * * * /path/to/.venv/bin/spotify-auto-dl sync --config /path/to/config.yaml
+0 6 * * * cd /Users/theoaronow/Documents/Spotify-Auto-Downloader && SPOTIFY_CLIENT_ID=your_id SPOTIFY_CLIENT_SECRET=your_secret /Users/theoaronow/Documents/Spotify-Auto-Downloader/.venv/bin/spotify-auto-dl sync --config /Users/theoaronow/Documents/Spotify-Auto-Downloader/config.yaml >> /Users/theoaronow/.spotify-auto-dl/cron.log 2>&1
 ```
 
-**Finding your full path:**
+Replace `your_id` and `your_secret` with the values from your `.env` file. The credentials must be inline because cron does not load `.env` files automatically.
+
+**Step 3 — save and exit**
+
+If using vim: press `Esc`, type `:wq`, press `Enter`.
+
+**Step 4 — verify it saved**
 ```bash
-which spotify-auto-dl
+crontab -l
+```
+
+**Changing the schedule** — edit the `0 6 * * *` part:
+```
+0 8 * * *     every day at 8am
+0 6 * * 1     every Monday at 6am
+0 6,18 * * *  every day at 6am and 6pm
+```
+
+**Checking the log after it runs:**
+```bash
+cat ~/.spotify-auto-dl/cron.log
 ```
 
 ---
