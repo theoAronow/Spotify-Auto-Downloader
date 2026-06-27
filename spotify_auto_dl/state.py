@@ -17,20 +17,47 @@ class State:
         with open(self._path) as f:
             return json.load(f)
 
+    def _entry_matches(self, entry: dict, title: str) -> bool:
+        return entry.get("title", "").lower().strip() == title.lower().strip()
+
     def is_downloaded(self, track_id: str, title: str | None = None) -> bool:
-        if track_id in self._data:
+        entry = self._data.get(track_id)
+        if entry and entry.get("status", "downloaded") == "downloaded":
             return True
         if title is not None:
-            normalized = title.lower().strip()
-            return any(v["title"].lower().strip() == normalized for v in self._data.values())
+            return any(
+                self._entry_matches(v, title) and v.get("status", "downloaded") == "downloaded"
+                for v in self._data.values()
+            )
+        return False
+
+    def is_failed(self, track_id: str, title: str | None = None) -> bool:
+        entry = self._data.get(track_id)
+        if entry and entry.get("status") == "failed":
+            return True
+        if title is not None:
+            return any(
+                self._entry_matches(v, title) and v.get("status") == "failed"
+                for v in self._data.values()
+            )
         return False
 
     def mark_downloaded(self, track_id: str, title: str, artist: str, album: str) -> None:
         self._data[track_id] = {
+            "status": "downloaded",
             "title": title,
             "artist": artist,
             "album": album,
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
+        }
+
+    def mark_failed(self, track_id: str, title: str, artist: str, album: str) -> None:
+        self._data[track_id] = {
+            "status": "failed",
+            "title": title,
+            "artist": artist,
+            "album": album,
+            "failed_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def save(self) -> None:

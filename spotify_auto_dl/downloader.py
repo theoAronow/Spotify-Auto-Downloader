@@ -81,11 +81,14 @@ def sync(config: Config, state: State) -> None:
 
         new_tracks = []
         for track in all_tracks:
-            already = state.is_downloaded(track["id"], title=track["name"])
-            status = "[dim]already downloaded[/dim]" if already else "[green]new[/green]"
-            console.print(f"    {track['name']} — [dim]{track['album']}[/dim] [{status}]")
-            if not already:
+            if state.is_downloaded(track["id"], title=track["name"]):
+                status = "[dim]already downloaded[/dim]"
+            elif state.is_failed(track["id"], title=track["name"]):
+                status = "[yellow]skipping (previously failed)[/yellow]"
+            else:
+                status = "[green]new[/green]"
                 new_tracks.append(track)
+            console.print(f"    {track['name']} — [dim]{track['album']}[/dim] [{status}]")
 
         if not new_tracks:
             console.print("\n  [green]Already up to date.[/]")
@@ -96,8 +99,8 @@ def sync(config: Config, state: State) -> None:
         total = len(new_tracks)
         for i, track in enumerate(new_tracks, 1):
             console.print(f"  [{i}/{total}] Downloading: [cyan]{track['name']}[/]")
-            track_url = f"https://open.spotify.com/track/{track['id']}"
-            songs = spotdl_client.search([track_url])
+            query = f"{track['name']} {artist.name}"
+            songs = spotdl_client.search([query])
             if songs:
                 _, path = spotdl_client.download(songs[0])
                 if path:
@@ -109,8 +112,20 @@ def sync(config: Config, state: State) -> None:
                     )
                     console.print(f"  [{i}/{total}] [green]Done:[/] {track['name']}")
                 else:
+                    state.mark_failed(
+                        track_id=track["id"],
+                        title=track["name"],
+                        artist=artist.name,
+                        album=track["album"],
+                    )
                     console.print(f"  [{i}/{total}] [red]Failed:[/] {track['name']}")
             else:
+                state.mark_failed(
+                    track_id=track["id"],
+                    title=track["name"],
+                    artist=artist.name,
+                    album=track["album"],
+                )
                 console.print(f"  [{i}/{total}] [red]Not found on YouTube:[/] {track['name']}")
 
     state.save()
