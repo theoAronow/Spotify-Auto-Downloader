@@ -83,7 +83,7 @@ def sync(config: Config, state: State) -> None:
         for track in all_tracks:
             if state.is_downloaded(track["id"], title=track["name"]):
                 status = "[dim]already downloaded[/dim]"
-            elif state.is_failed(track["id"], title=track["name"]):
+            elif state.is_skipped(track["id"], title=track["name"]):
                 status = "[yellow]skipping (previously failed)[/yellow]"
             else:
                 status = "[green]new[/green]"
@@ -112,7 +112,7 @@ def sync(config: Config, state: State) -> None:
                     )
                     console.print(f"  [{i}/{total}] [green]Done:[/] {track['name']}")
                 else:
-                    state.mark_failed(
+                    state.mark_skipped(
                         track_id=track["id"],
                         title=track["name"],
                         artist=artist.name,
@@ -120,7 +120,7 @@ def sync(config: Config, state: State) -> None:
                     )
                     console.print(f"  [{i}/{total}] [red]Failed:[/] {track['name']}")
             else:
-                state.mark_failed(
+                state.mark_skipped(
                     track_id=track["id"],
                     title=track["name"],
                     artist=artist.name,
@@ -128,5 +128,5 @@ def sync(config: Config, state: State) -> None:
                 )
                 console.print(f"  [{i}/{total}] [red]Not found on YouTube:[/] {track['name']}")
 
-    state.save()
+            state.save()
     console.print("\n[bold green]Sync complete.[/]")

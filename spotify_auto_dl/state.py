@@ -31,13 +31,13 @@ class State:
             )
         return False
 
-    def is_failed(self, track_id: str, title: str | None = None) -> bool:
+    def is_skipped(self, track_id: str, title: str | None = None) -> bool:
         entry = self._data.get(track_id)
-        if entry and entry.get("status") == "failed":
+        if entry and entry.get("status") in ("skipped", "failed"):
             return True
         if title is not None:
             return any(
-                self._entry_matches(v, title) and v.get("status") == "failed"
+                self._entry_matches(v, title) and v.get("status") in ("skipped", "failed")
                 for v in self._data.values()
             )
         return False
@@ -51,13 +51,13 @@ class State:
             "downloaded_at": datetime.now(timezone.utc).isoformat(),
         }
 
-    def mark_failed(self, track_id: str, title: str, artist: str, album: str) -> None:
+    def mark_skipped(self, track_id: str, title: str, artist: str, album: str) -> None:
         self._data[track_id] = {
-            "status": "failed",
+            "status": "skipped",
             "title": title,
             "artist": artist,
             "album": album,
-            "failed_at": datetime.now(timezone.utc).isoformat(),
+            "skipped_at": datetime.now(timezone.utc).isoformat(),
         }
 
     def save(self) -> None:

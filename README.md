@@ -165,6 +165,17 @@ For example:
 
 Downloaded tracks are recorded in `~/.spotify-auto-dl/state.json`. This is how the tool knows what you already have — it prevents re-downloading songs across runs. Do not delete it unless you want to re-download everything.
 
+Each entry has a `status` field:
+
+| Status | Meaning |
+|---|---|
+| `downloaded` | Successfully downloaded |
+| `skipped` | Could not be downloaded (no YouTube match or download failed) |
+
+Skipped tracks are not retried on future runs. The state file is written after every individual track so progress is preserved if the program is interrupted mid-run.
+
+To retry a skipped track, remove its entry from `state.json` and run sync again.
+
 ---
 
 ## Scheduling
@@ -241,6 +252,12 @@ The same song can have different Spotify IDs across album versions, deluxe editi
 
 **Downloads are slow**
 Normal — each track requires finding a matching audio source on YouTube. The first run is the slowest since it downloads everything. Future runs only fetch new releases.
+
+**The program stops early / hits a rate limit**
+Progress is saved to `state.json` after every track, so re-running will pick up where it left off without re-downloading completed tracks.
+
+**A track is marked as skipped but I want to retry it**
+Open `~/.spotify-auto-dl/state.json`, find the entry by song title, delete it, and run sync again.
 
 ---
 
